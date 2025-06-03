@@ -1,0 +1,758 @@
+openapi: 3.0.3
+info:
+  title: Full‐Stack Blog REST API
+  version: 1.0.0
+  description: |
+    A production‐ready blog API built with Express, TypeScript, MongoDB, and JWT authentication.
+    All endpoints under `/api/auth`, `/api/categories`, and `/api/posts` are documented here.
+
+servers:
+  - url: http://localhost:4000
+    description: Local development server
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    #---------------------------
+    # 1) Auth / User Schemas
+    #---------------------------
+
+    RegisterRequest:
+      type: object
+      required:
+        - username
+        - email
+        - password
+      properties:
+        username:
+          type: string
+          example: johndoe
+          description: Unique user name (3–30 characters)
+        email:
+          type: string
+          format: email
+          example: john@example.com
+        password:
+          type: string
+          format: password
+          example: strongPassword123
+          description: Minimum 6 characters
+      additionalProperties: false
+
+    LoginRequest:
+      type: object
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          example: john@example.com
+        password:
+          type: string
+          format: password
+          example: strongPassword123
+      additionalProperties: false
+
+    AuthResponse:
+      type: object
+      required:
+        - token
+        - user
+      properties:
+        token:
+          type: string
+          description: JWT access token
+        user:
+          $ref: '#/components/schemas/UserResponse'
+
+    UserResponse:
+      type: object
+      required:
+        - id
+        - username
+        - email
+      properties:
+        id:
+          type: string
+          example: 60d5ec49f88a4c3e88f3ad91
+        username:
+          type: string
+          example: johndoe
+        email:
+          type: string
+          format: email
+          example: john@example.com
+        createdAt:
+          type: string
+          format: date-time
+          example: '2025-06-02T16:15:42.405Z'
+        updatedAt:
+          type: string
+          format: date-time
+          example: '2025-06-02T16:20:12.123Z'
+
+    #---------------------------
+    # 2) Category Schemas
+    #---------------------------
+
+    Category:
+      type: object
+      required:
+        - id
+        - name
+        - slug
+      properties:
+        id:
+          type: string
+          example: 60d6f1e2c9a8653c947ae16a
+        name:
+          type: string
+          example: Technology
+        slug:
+          type: string
+          example: technology
+        createdAt:
+          type: string
+          format: date-time
+          example: '2025-06-02T17:00:00.000Z'
+        updatedAt:
+          type: string
+          format: date-time
+          example: '2025-06-02T17:05:00.000Z'
+
+    CreateCategory:
+      type: object
+      required:
+        - name
+        - slug
+      properties:
+        name:
+          type: string
+          example: Technology
+        slug:
+          type: string
+          example: technology
+      additionalProperties: false
+
+    UpdateCategory:
+      type: object
+      properties:
+        name:
+          type: string
+          example: Technology
+        slug:
+          type: string
+          example: technology
+      additionalProperties: false
+      minProperties: 1
+
+    CategoryResponse:
+      type: object
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          oneOf:
+            - $ref: '#/components/schemas/Category'
+            - type: array
+              items:
+                $ref: '#/components/schemas/Category'
+      required:
+        - success
+        - data
+
+    #---------------------------
+    # 3) Post Schemas
+    #---------------------------
+
+    Post:
+      type: object
+      required:
+        - id
+        - title
+        - slug
+        - content
+        - author
+        - categories
+      properties:
+        id:
+          type: string
+          example: 60d70bffc9a8653c947af2b4
+        title:
+          type: string
+          example: My First Blog Post
+        slug:
+          type: string
+          example: my-first-blog-post
+        content:
+          type: string
+          example: Lorem ipsum dolor sit amet...
+        author:
+          $ref: '#/components/schemas/UserResponse'
+        categories:
+          type: array
+          items:
+            $ref: '#/components/schemas/Category'
+        createdAt:
+          type: string
+          format: date-time
+          example: '2025-06-02T19:00:00.000Z'
+        updatedAt:
+          type: string
+          format: date-time
+          example: '2025-06-02T19:05:00.000Z'
+
+    CreatePost:
+      type: object
+      required:
+        - title
+        - slug
+        - content
+        - authorId
+        - categories
+      properties:
+        title:
+          type: string
+          example: My First Blog Post
+        slug:
+          type: string
+          example: my-first-blog-post
+        content:
+          type: string
+          example: Lorem ipsum dolor sit amet...
+        authorId:
+          type: string
+          example: 60d5ec49f88a4c3e88f3ad91
+          description: MongoDB ObjectId of the author
+        categories:
+          type: array
+          items:
+            type: string
+            example: 60d6f1e2c9a8653c947ae16a
+            description: MongoDB ObjectId strings of categories
+      additionalProperties: false
+
+    UpdatePost:
+      type: object
+      properties:
+        title:
+          type: string
+          example: My Updated Blog Post
+        slug:
+          type: string
+          example: my-updated-blog-post
+        content:
+          type: string
+          example: Updated content here...
+        categories:
+          type: array
+          items:
+            type: string
+            example: 60d6f1e2c9a8653c947ae16a
+            description: MongoDB ObjectId strings of categories
+      additionalProperties: false
+      minProperties: 1
+
+    PostResponse:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          oneOf:
+            - $ref: '#/components/schemas/Post'
+            - type: array
+              items:
+                $ref: '#/components/schemas/Post'
+
+    PaginatedPosts:
+      type: object
+      required:
+        - success
+        - page
+        - limit
+        - total
+        - data
+      properties:
+        success:
+          type: boolean
+          example: true
+        page:
+          type: integer
+          example: 1
+        limit:
+          type: integer
+          example: 10
+        total:
+          type: integer
+          example: 42
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Post'
+
+    #---------------------------
+    # 4) Error Schema
+    #---------------------------
+
+    ErrorResponse:
+      type: object
+      required:
+        - success
+        - message
+      properties:
+        success:
+          type: boolean
+          example: false
+        message:
+          type: string
+          example: Invalid credentials
+      additionalProperties: false
+
+paths:
+  #---------------------------------------------
+  # 1) Authentication Routes
+  #---------------------------------------------
+
+  /api/auth/register:
+    post:
+      tags:
+        - Auth
+      summary: Register a new user
+      description: Creates a new user account and returns the newly created user (without password) and a JWT token.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: User registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Username or email already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/auth/login:
+    post:
+      tags:
+        - Auth
+      summary: Log in an existing user
+      description: Verifies credentials and returns a JWT token plus user info.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  #---------------------------------------------
+  # 2) Category Routes (protected by Bearer JWT)
+  #---------------------------------------------
+
+  /api/categories:
+    get:
+      tags:
+        - Categories
+      summary: Get all categories
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of categories
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryResponse'
+        '401':
+          description: Unauthorized (missing/invalid token)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      tags:
+        - Categories
+      summary: Create a new category
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateCategory'
+      responses:
+        '201':
+          description: Category created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Slug conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/categories/{id}:
+    get:
+      tags:
+        - Categories
+      summary: Get a category by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: Category ID (Mongo ObjectId)
+      responses:
+        '200':
+          description: Category found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryResponse'
+        '404':
+          description: Category not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      tags:
+        - Categories
+      summary: Update a category by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: Category ID (Mongo ObjectId)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCategory'
+      responses:
+        '200':
+          description: Category updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CategoryResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Category not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Slug conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      tags:
+        - Categories
+      summary: Delete a category by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: Category ID (Mongo ObjectId)
+      responses:
+        '204':
+          description: Category deleted (no content)
+        '404':
+          description: Category not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  #---------------------------------------------
+  # 3) Post Routes (protected by Bearer JWT)
+  #---------------------------------------------
+
+  /api/posts:
+    get:
+      tags:
+        - Posts
+      summary: Get paginated list of posts
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+          description: Page number
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+          description: Number of posts per page
+      responses:
+        '200':
+          description: Paginated posts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedPosts'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    post:
+      tags:
+        - Posts
+      summary: Create a new post
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePost'
+      responses:
+        '201':
+          description: Post created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Slug conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/posts/{id}:
+    get:
+      tags:
+        - Posts
+      summary: Get a single post by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: Post ID (Mongo ObjectId)
+      responses:
+        '200':
+          description: Post found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostResponse'
+        '404':
+          description: Post not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      tags:
+        - Posts
+      summary: Update a post by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: Post ID (Mongo ObjectId)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdatePost'
+      responses:
+        '200':
+          description: Post updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PostResponse'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Post not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Slug conflict
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      tags:
+        - Posts
+      summary: Delete a post by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: Post ID (Mongo ObjectId)
+      responses:
+        '204':
+          description: Post deleted (no content)
+        '404':
+          description: Post not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'

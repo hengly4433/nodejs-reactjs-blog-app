@@ -1,0 +1,47 @@
+services:
+  mongo:
+    image: mongo:6.0
+    container_name: blog_mongo
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_DATABASE: blogdb
+      MONGO_INITDB_ROOT_USERNAME: rootuser
+      MONGO_INITDB_ROOT_PASSWORD: rootpass
+    volumes:
+      - mongo_data:/data/db
+    ports:
+      - '27018:27017'
+    networks:
+      - backend-network
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      # target: production  # Uncomment if you named final stage "production"
+    container_name: blog_api
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - PORT=4000
+      - MONGO_URI=mongodb://rootuser:rootpass@mongo:27017/blogdb?authSource=admin
+      - JWT_SECRET=${JWT_SECRET}
+      - JWT_EXPIRES_IN=${JWT_EXPIRES_IN}
+      - SALT_ROUNDS=${SALT_ROUNDS}
+      - LOG_LEVEL=${LOG_LEVEL}
+    ports:
+      - '4000:4000'
+    depends_on:
+      - mongo
+    volumes:
+      - ./logs:/app/logs
+    networks:
+      - backend-network
+
+volumes:
+  mongo_data:
+    driver: local
+
+networks:
+  backend-network:
+    driver: bridge
