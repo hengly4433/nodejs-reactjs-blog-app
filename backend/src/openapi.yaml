@@ -1,6 +1,6 @@
 openapi: 3.0.3
 info:
-  title: Full‐Stack Blog REST API
+  title: Node JS Blog REST API
   version: 1.0.0
   description: |
     A production‐ready blog API built with Express, TypeScript, MongoDB, and JWT authentication.
@@ -304,7 +304,123 @@ components:
             $ref: '#/components/schemas/Post'
 
     #---------------------------
-    # 4) Error Schema
+    # 4) Comment Schemas
+    #---------------------------
+
+    Comment:
+      type: object
+      required:
+        - id
+        - content
+        - author
+        - post
+      properties:
+        id:
+          type: string
+          example: 60d83b23a5f2b4383c7abcd0
+        content:
+          type: string
+          example: "Nice post!"
+        author:
+          $ref: '#/components/schemas/UserResponse'
+        post:
+          type: string
+          example: 60d70bffc9a8653c947af2b4
+        createdAt:
+          type: string
+          format: date-time
+          example: '2025-06-03T10:45:00.000Z'
+        updatedAt:
+          type: string
+          format: date-time
+          example: '2025-06-03T11:00:00.000Z'
+
+    CreateComment:
+      type: object
+      required:
+        - content
+      properties:
+        content:
+          type: string
+          example: "This is a comment"
+      additionalProperties: false
+
+    UpdateComment:
+      type: object
+      required:
+        - content
+      properties:
+        content:
+          type: string
+          example: "Updated comment"
+      additionalProperties: false
+
+    CommentList:
+      type: object
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          example: true
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Comment'
+
+    #---------------------------
+    # 5) Like Schemas
+    #---------------------------
+
+    Like:
+      type: object
+      required:
+        - id
+        - user
+        - post
+        - createdAt
+      properties:
+        id:
+          type: string
+          example: 60d8af123a4cf7a1f4ab9cd3
+        user:
+          $ref: '#/components/schemas/UserResponse'
+        post:
+          type: string
+          example: 60d70bffc9a8653c947af2b4
+        createdAt:
+          type: string
+          format: date-time
+          example: '2025-06-03T10:20:30.123Z'
+
+    LikeCreateResponse:
+      type: object
+      required:
+        - success
+        - like
+      properties:
+        success:
+          type: boolean
+          example: true
+        like:
+          $ref: '#/components/schemas/Like'
+
+    LikeCountResponse:
+      type: object
+      required:
+        - success
+        - total
+      properties:
+        success:
+          type: boolean
+          example: true
+        total:
+          type: integer
+          example: 42
+
+    #---------------------------
+    # 6) Error Schema
     #---------------------------
 
     ErrorResponse:
@@ -752,6 +868,314 @@ paths:
                 $ref: '#/components/schemas/ErrorResponse'
         '401':
           description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  #---------------------------------------------
+  # 4) Comment Routes (protected by Bearer JWT)
+  #---------------------------------------------
+
+  /api/posts/{postId}/comments:
+    post:
+      tags:
+        - Comments
+      summary: Create a comment on a post
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: postId
+          schema:
+            type: string
+          required: true
+          description: Post ID (Mongo ObjectId)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateComment'
+      responses:
+        '201':
+          description: Comment created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
+        '400':
+          description: Validation error or invalid postId
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized (missing/invalid token)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Post not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    get:
+      tags:
+        - Comments
+      summary: Get all comments for a post
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: postId
+          schema:
+            type: string
+          required: true
+          description: Post ID (Mongo ObjectId)
+      responses:
+        '200':
+          description: List of comments
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CommentList'
+        '400':
+          description: Invalid postId
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized (missing/invalid token)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Post not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/comments/{id}:
+    put:
+      tags:
+        - Comments
+      summary: Update a comment by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: Comment ID (Mongo ObjectId)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateComment'
+      responses:
+        '200':
+          description: Comment updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Comment'
+        '400':
+          description: Validation error or invalid comment ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized (missing/invalid token)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden (not comment owner)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Comment not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    delete:
+      tags:
+        - Comments
+      summary: Delete a comment by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          schema:
+            type: string
+          required: true
+          description: Comment ID (Mongo ObjectId)
+      responses:
+        '204':
+          description: Comment deleted (no content)
+        '400':
+          description: Invalid comment ID
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized (missing/invalid token)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '403':
+          description: Forbidden (not comment owner)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Comment not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  #---------------------------------------------
+  # 5) Like Routes (protected by Bearer JWT)
+  #---------------------------------------------
+
+  /api/posts/{postId}/like:
+    post:
+      tags:
+        - Likes
+      summary: Like a post
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: postId
+          schema:
+            type: string
+          required: true
+          description: Post ID (Mongo ObjectId)
+      responses:
+        '201':
+          description: Like created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LikeCreateResponse'
+        '400':
+          description: Invalid postId
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized (missing/invalid token)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Post not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '409':
+          description: Already liked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/posts/{postId}/unlike:
+    delete:
+      tags:
+        - Likes
+      summary: Unlike a post
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: postId
+          schema:
+            type: string
+          required: true
+          description: Post ID (Mongo ObjectId)
+      responses:
+        '204':
+          description: Like removed (no content)
+        '400':
+          description: Invalid postId
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized (missing/invalid token)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Like not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /api/posts/{postId}/likes:
+    get:
+      tags:
+        - Likes
+      summary: Get like count for a post
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: postId
+          schema:
+            type: string
+          required: true
+          description: Post ID (Mongo ObjectId)
+      responses:
+        '200':
+          description: Like count fetched
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LikeCountResponse'
+        '400':
+          description: Invalid postId
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized (missing/invalid token)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Post not found
           content:
             application/json:
               schema:
