@@ -7,8 +7,9 @@ export interface IPost extends Document {
   title: string;
   slug: string;
   content: string;
-  author: IUser['_id'];       // reference to User
-  categories: ICategory['_id'][]; // references to Category
+  author: IUser['_id'];              // reference to User
+  categories: ICategory['_id'][];     // references to Category
+  imageUrl?: string;                  // URL or relative path of the uploaded image
   createdAt: Date;
   updatedAt: Date;
 }
@@ -40,8 +41,14 @@ const postSchema = new Schema<IPost>(
       {
         type: Schema.Types.ObjectId,
         ref: 'Category',
+        required: true,
       },
     ],
+    imageUrl: {
+      type: String,
+      required: false,
+      trim: true,
+    },
   },
   { timestamps: true }
 );

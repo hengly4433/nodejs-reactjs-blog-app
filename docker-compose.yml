@@ -1,0 +1,55 @@
+services:
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: blog_api
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    ports:
+      - "4000:4000"
+    depends_on:
+      - mongo
+    volumes:
+      - uploads_data:/app/uploads
+    networks:
+      - blog-network
+
+  mongo:
+    image: mongo:6.0
+    container_name: blog_mongo
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_DATABASE: blogdb
+      MONGO_INITDB_ROOT_USERNAME: rootuser
+      MONGO_INITDB_ROOT_PASSWORD: rootpass
+    volumes:
+      - mongo_data:/data/db
+    ports:
+      - "27018:27017"
+    networks:
+      - blog-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: blog_frontend
+    restart: unless-stopped
+    environment:
+      - VITE_API_URL=http://backend:4000
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - blog-network
+
+volumes:
+  mongo_data:
+  uploads_data:
+
+networks:
+  blog-network:
+    driver: bridge

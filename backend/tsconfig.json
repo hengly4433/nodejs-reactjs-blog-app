@@ -11,8 +11,10 @@
     "skipLibCheck": true,
     "resolveJsonModule": true,
     "noUnusedLocals": true,
-    "noUnusedParameters": true
+    "noUnusedParameters": true,
+    // If you already have "typeRoots", include your new types directory.
+    "typeRoots": ["./node_modules/@types", "./src/types"]
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*.ts", "src/types/**/*.d.ts"],
   "exclude": ["node_modules", "build"]
 }

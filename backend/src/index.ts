@@ -46,8 +46,16 @@ const app: Application = express();
 
 app.use('/api/', apiLimiter);
 
+// 2) Serve static files from the /uploads directory, so uploaded images are accessible
+app.use(
+  '/uploads',
+  express.static(path.resolve(__dirname, 'uploads')),
+);
+
 // 3) Serve Swagger UI at /api-docs
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(openapiDocument));
+
+
 
 // Connect to MongoDB
 connectDB();

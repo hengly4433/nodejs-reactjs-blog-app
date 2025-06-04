@@ -201,6 +201,10 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Category'
+        imageUrl:
+          type: string
+          format: uri
+          example: /uploads/posts/abcdef_16243512345.jpg
         createdAt:
           type: string
           format: date-time
@@ -724,15 +728,45 @@ paths:
     post:
       tags:
         - Posts
-      summary: Create a new post
+      summary: Create a new post (with optional image upload)
       security:
         - bearerAuth: []
       requestBody:
         required: true
         content:
-          application/json:
+          multipart/form-data:
             schema:
-              $ref: '#/components/schemas/CreatePost'
+              type: object
+              required:
+                - title
+                - slug
+                - content
+                - authorId
+                - categories
+              properties:
+                title:
+                  type: string
+                  example: My First Blog Post
+                slug:
+                  type: string
+                  example: my-first-blog-post
+                content:
+                  type: string
+                  example: Lorem ipsum dolor sit amet...
+                authorId:
+                  type: string
+                  example: 60d5ec49f88a4c3e88f3ad91
+                  description: MongoDB ObjectId of the author
+                categories:
+                  type: array
+                  items:
+                    type: string
+                    example: 60d6f1e2c9a8653c947ae16a
+                    description: MongoDB ObjectId strings of categories
+                image:
+                  type: string
+                  format: binary
+                  description: Optional JPEG/PNG file for the post’s cover image
       responses:
         '201':
           description: Post created
@@ -741,7 +775,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PostResponse'
         '400':
-          description: Validation error
+          description: Validation error or invalid file type
           content:
             application/json:
               schema:
@@ -796,7 +830,7 @@ paths:
     put:
       tags:
         - Posts
-      summary: Update a post by ID
+      summary: Update a post by ID (fields + optional new image)
       security:
         - bearerAuth: []
       parameters:
@@ -809,9 +843,29 @@ paths:
       requestBody:
         required: true
         content:
-          application/json:
+          multipart/form-data:
             schema:
-              $ref: '#/components/schemas/UpdatePost'
+              type: object
+              properties:
+                title:
+                  type: string
+                  example: My Updated Blog Post
+                slug:
+                  type: string
+                  example: my-updated-blog-post
+                content:
+                  type: string
+                  example: Updated content here...
+                categories:
+                  type: array
+                  items:
+                    type: string
+                    example: 60d6f1e2c9a8653c947ae16a
+                    description: MongoDB ObjectId strings of categories
+                image:
+                  type: string
+                  format: binary
+                  description: Optional new JPEG/PNG file to replace existing image
       responses:
         '200':
           description: Post updated
@@ -820,7 +874,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/PostResponse'
         '400':
-          description: Validation error
+          description: Validation error or invalid file type
           content:
             application/json:
               schema:

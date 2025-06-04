@@ -1,17 +1,19 @@
+// src/services/PostService.ts
 import { Types } from 'mongoose';
 import Post, { IPost } from '../models/Post';
 import ApiError from '../utils/ApiError';
 
 class PostService {
   /**
-   * Creates a new post.
+   * Creates a new post (with multiple categories + optional image).
    */
   public async createPost(
     title: string,
     slug: string,
     content: string,
     authorId: string,
-    categoryIds: string[]   // string IDs
+    categoryIds: string[],   // array of string IDs
+    imageFilePath?: string   // optional relative path, e.g. "/uploads/posts/abc.jpg"
   ): Promise<IPost> {
     // 1) Check slug uniqueness
     const existing = await Post.findOne({ slug });
@@ -19,36 +21,40 @@ class PostService {
       throw new ApiError(409, 'Post with this slug already exists');
     }
 
-    // 2) Convert categoryIds to ObjectId[]
+    // 2) Validate and convert categoryIds to ObjectId[]
     const invalidCategory = categoryIds.find((catId) => !Types.ObjectId.isValid(catId));
     if (invalidCategory) {
       throw new ApiError(400, `Invalid category ID: ${invalidCategory}`);
     }
     const categoryObjectIds = categoryIds.map((catId) => new Types.ObjectId(catId));
 
-    // 3) Convert authorId to ObjectId
+    // 3) Validate authorId
     if (!Types.ObjectId.isValid(authorId)) {
       throw new ApiError(400, `Invalid author ID: ${authorId}`);
     }
     const authorObjectId = new Types.ObjectId(authorId);
 
-    // 4) Create and save
-    const post = new Post({
+    // 4) Build new post data
+    const newPostData: Partial<IPost> = {
       title,
       slug,
       content,
       author: authorObjectId,
       categories: categoryObjectIds,
-    });
+    };
+    if (imageFilePath) {
+      newPostData.imageUrl = imageFilePath;
+    }
+
+    // 5) Save
+    const post = new Post(newPostData);
     await post.save();
 
-    // 5) Populate and return
+    // 6) Populate before returning
     await post.populate('author', 'username email');
     await post.populate('categories', 'name slug');
     return post;
   }
-
-  
 
   /**
    * Retrieves a paginated list of posts.
@@ -84,7 +90,7 @@ class PostService {
   }
 
   /**
-   * Updates a post.
+   * Updates an existing post.
    */
   public async updatePost(
     id: string,
@@ -93,7 +99,8 @@ class PostService {
       slug: string;
       content: string;
       categories: string[];   // still string[]
-    }>
+    }>,
+    imageFilePath?: string   // optional new image path
   ): Promise<IPost> {
     // 1) Find the post
     const post = await Post.findById(id);
@@ -101,7 +108,7 @@ class PostService {
       throw new ApiError(404, 'Post not found');
     }
 
-    // 2) If slug changing, check uniqueness
+    // 2) If slug is changing, check uniqueness
     if (data.slug && data.slug !== post.slug) {
       const exists = await Post.findOne({ slug: data.slug });
       if (exists) {
@@ -109,21 +116,24 @@ class PostService {
       }
     }
 
-    // 3) If categories provided, convert to ObjectId[]
+    // 3) If categories provided, validate & convert them
     if (data.categories) {
       const invalidCategory = data.categories.find((catId) => !Types.ObjectId.isValid(catId));
       if (invalidCategory) {
         throw new ApiError(400, `Invalid category ID: ${invalidCategory}`);
       }
       const categoryObjectIds = data.categories.map((catId) => new Types.ObjectId(catId));
-      (data as any).categories = categoryObjectIds; // cast so Mongoose accepts it
+      (data as any).categories = categoryObjectIds; // cast so Mongoose accepts
     }
 
     // 4) Merge updates & save
     post.set(data as any);
+    if (imageFilePath) {
+      post.imageUrl = imageFilePath;
+    }
     await post.save();
 
-    // 5) Populate and return
+    // 5) Populate before returning
     await post.populate('author', 'username email');
     await post.populate('categories', 'name slug');
     return post;
