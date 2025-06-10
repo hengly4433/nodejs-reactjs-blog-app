@@ -1,4 +1,5 @@
 // src/pages/NewPostPage.tsx
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState, useEffect, useContext } from 'react';
 import {
@@ -19,22 +20,39 @@ import {
   FormHelperText,
   FormLabel,
 } from '@mui/material';
+import { SelectChangeEvent } from '@mui/material/Select';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '@/contexts/AuthContext';
 import api from '@/services/api';
 import postService from '@/services/postService';
-import { Category } from '@/types';
 
 // TipTap imports
 import { EditorContent, useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import Link from '@tiptap/extension-link';
-import Image from '@tiptap/extension-image';
+import LinkExtension from '@tiptap/extension-link';
+import ImageExtension from '@tiptap/extension-image';
 import FormatBoldIcon from '@mui/icons-material/FormatBold';
 import FormatItalicIcon from '@mui/icons-material/FormatItalic';
 
+interface RawCategoryFromApi {
+  _id: string;
+  name: string;
+  slug: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+// Our typed Category (must have `id`—not `_id`)
+export interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 interface IApiCategoryList {
-  data: Category[];
+  data: RawCategoryFromApi[];
 }
 
 const ITEM_HEIGHT = 48;
@@ -49,10 +67,10 @@ const MenuProps = {
 };
 
 const NewPostPage: React.FC = () => {
-  const auth = useContext(AuthContext)!; // must provide { user: { id: string } }
+  const auth = useContext(AuthContext)!; // AuthContext provides { user }
   const navigate = useNavigate();
 
-  // ── Form state ───────────────────────────────────────────────────────────────
+  // ── Form state ─────────────────────────────────────────────────────────────
   const [title, setTitle] = useState('');
   const [slug, setSlug] = useState('');
   const [categories, setCategories] = useState<Category[]>([]);
@@ -61,22 +79,46 @@ const NewPostPage: React.FC = () => {
   const [error, setError] = useState<string>('');
   const [categoryError, setCategoryError] = useState<string>('');
 
-  // ── TipTap editor setup ──────────────────────────────────────────────────────
+  // ── Auto-slugify on title change ────────────────────────────────────────────
+  useEffect(() => {
+    const slugify = (text: string) =>
+      text
+        .toLowerCase()
+        .trim()
+        // remove special chars
+        .replace(/[&/\\#,+()$~%.'":*?<>{}]/g, '')
+        // collapse spaces and replace with hyphens
+        .replace(/\s+/g, '-');
+
+    setSlug(slugify(title));
+  }, [title]);
+
+  // ── TipTap editor setup ───────────────────────────────────────────────────
   const editor = useEditor({
     extensions: [
       StarterKit,
-      Link.configure({ openOnClick: false, HTMLAttributes: { class: 'tiptap-link' } }),
-      Image.configure({ inline: true, allowBase64: true }),
+      LinkExtension.configure({
+        openOnClick: false,
+        HTMLAttributes: { class: 'tiptap-link' },
+      }),
+      ImageExtension.configure({ inline: true, allowBase64: true }),
     ],
     content: '<p></p>',
   });
 
-  // ── Fetch categories on mount ─────────────────────────────────────────────────
+  // ── Fetch categories on mount ─────────────────────────────────────────────
   useEffect(() => {
     const fetchCategories = async () => {
       try {
         const res = await api.get<IApiCategoryList>('/categories');
-        setCategories(res.data.data);
+        const mapped: Category[] = res.data.data.map((rawCat) => ({
+          id: rawCat._id,
+          name: rawCat.name,
+          slug: rawCat.slug,
+          createdAt: rawCat.createdAt,
+          updatedAt: rawCat.updatedAt,
+        }));
+        setCategories(mapped);
       } catch (err) {
         console.error('Failed to load categories:', err);
       }
@@ -84,34 +126,22 @@ const NewPostPage: React.FC = () => {
     fetchCategories();
   }, []);
 
-  // ── Handle category selection change ───────────────────────────────────────────
-  // We coerce a single string into a string[] if necessary
-  const handleCategorySelect = (event: React.ChangeEvent<{ value: unknown }>) => {
+  // ── Handle category selection change ───────────────────────────────────────
+  const handleCategorySelect = (event: SelectChangeEvent<string[]>) => {
     const value = event.target.value;
     let asArray: string[];
-
     if (typeof value === 'string') {
-      // If MUI delivered a single string (it shouldn't in `multiple` mode, but just in case),
-      // split on commas or wrap it in an array
-      asArray = value.split(',').map((v) => v.trim()).filter((v) => v.length > 0);
+      asArray = value.split(',').map((v) => v.trim()).filter((v) => v);
     } else if (Array.isArray(value)) {
-      // Normal path: value is already string[]
-      asArray = value as string[];
+      asArray = value;
     } else {
       asArray = [];
     }
-
-    console.log('handleCategorySelect →', asArray);
     setSelectedCategories(asArray);
-
-    if (asArray.length === 0) {
-      setCategoryError('At least one category must be selected');
-    } else {
-      setCategoryError('');
-    }
+    setCategoryError(asArray.length === 0 ? 'At least one category must be selected' : '');
   };
 
-  // ── Handle image file selection ───────────────────────────────────────────────
+  // ── Handle image file selection ───────────────────────────────────────────
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files.length > 0) {
       setImageFile(e.target.files[0]);
@@ -120,15 +150,11 @@ const NewPostPage: React.FC = () => {
     }
   };
 
-  // ── TipTap: toggle bold/ italic ──────────────────────────────────────────────
-  const toggleBold = () => {
-    if (editor) editor.chain().focus().toggleBold().run();
-  };
-  const toggleItalic = () => {
-    if (editor) editor.chain().focus().toggleItalic().run();
-  };
+  // ── TipTap: toggle bold/italic ────────────────────────────────────────────
+  const toggleBold = () => editor?.chain().focus().toggleBold().run();
+  const toggleItalic = () => editor?.chain().focus().toggleItalic().run();
 
-  // ── Form submission ──────────────────────────────────────────────────────────
+  // ── Form submission ───────────────────────────────────────────────────────
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -141,7 +167,7 @@ const NewPostPage: React.FC = () => {
 
     const htmlContent = editor.getHTML().trim();
 
-    // Basic validation
+    // Basic validation:
     if (!title.trim() || !slug.trim() || htmlContent === '<p></p>') {
       setError('Title, Slug, and Content are required.');
       return;
@@ -151,26 +177,19 @@ const NewPostPage: React.FC = () => {
       return;
     }
 
-    // ── Build FormData ─────────────────────────────────────────────────────────
+    // Build FormData
     const formData = new FormData();
     formData.append('title', title.trim());
     formData.append('slug', slug.trim());
     formData.append('content', htmlContent);
     formData.append('authorId', auth.user!.id);
 
-    // Append each category separately
     selectedCategories.forEach((catId) => {
-      console.log('Appending category →', catId);
       formData.append('categories', catId);
     });
 
     if (imageFile) {
       formData.append('image', imageFile);
-    }
-
-    // OPTIONAL: inspect entries to verify nothing is missing.
-    for (const [key, value] of formData.entries()) {
-      console.log('FormData entry:', key, value);
     }
 
     try {
@@ -196,7 +215,7 @@ const NewPostPage: React.FC = () => {
       )}
 
       <Box component="form" onSubmit={handleSubmit} noValidate>
-        {/* ── Title ─────────────────────────────────────────────────────────────── */}
+        {/* Title */}
         <TextField
           label="Title"
           fullWidth
@@ -206,18 +225,17 @@ const NewPostPage: React.FC = () => {
           onChange={(e) => setTitle(e.target.value)}
         />
 
-        {/* ── Slug ───────────────────────────────────────────────────────────────── */}
+        {/* Slug (auto-generated) */}
         <TextField
           label="Slug"
           fullWidth
-          required
           margin="normal"
-          helperText="e.g. my-first-blog-post (lowercase, no spaces)"
+          helperText="Automatically generated from title"
           value={slug}
-          onChange={(e) => setSlug(e.target.value)}
+          disabled
         />
 
-        {/* ── TipTap Content Editor ─────────────────────────────────────────────── */}
+        {/* Content editor */}
         <Box sx={{ mt: 2, mb: 1 }}>
           <FormControl fullWidth>
             <FormLabel>Content (bold/italic supported)</FormLabel>
@@ -242,7 +260,6 @@ const NewPostPage: React.FC = () => {
                 </IconButton>
               </Tooltip>
             </Box>
-
             <EditorContent
               editor={editor}
               style={{
@@ -256,13 +273,12 @@ const NewPostPage: React.FC = () => {
           </FormControl>
         </Box>
 
-        {/* ── Categories as a multi‐select dropdown ─────────────────────────────── */}
+        {/* Categories */}
         <Box sx={{ mt: 2, mb: 2 }}>
           <FormControl fullWidth error={Boolean(categoryError)}>
             <InputLabel id="categories-label">Categories *</InputLabel>
             <Select
               labelId="categories-label"
-              id="categories-select"
               multiple
               value={selectedCategories}
               onChange={handleCategorySelect}
@@ -287,10 +303,10 @@ const NewPostPage: React.FC = () => {
           </FormControl>
         </Box>
 
-        {/* ── Image Upload ──────────────────────────────────────────────────────── */}
+        {/* Image Upload */}
         <Box sx={{ mt: 4, mb: 4 }}>
           <FormControl fullWidth>
-            <FormLabel>Cover Image (JPEG/PNG, optional)</FormLabel>
+            <FormLabel>Cover Image (optional)</FormLabel>
             <label htmlFor="image-upload">
               <input
                 style={{ display: 'none' }}
@@ -312,7 +328,7 @@ const NewPostPage: React.FC = () => {
           </FormControl>
         </Box>
 
-        {/* ── Submit Button ─────────────────────────────────────────────────────── */}
+        {/* Submit */}
         <Button type="submit" variant="contained" color="primary" sx={{ mt: 3 }}>
           Create Post
         </Button>

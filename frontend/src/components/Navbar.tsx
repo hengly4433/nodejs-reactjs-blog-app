@@ -1,48 +1,65 @@
 // src/components/Navbar.tsx
 import React, { useContext } from 'react';
-import { AppBar, Toolbar, Typography, Button, Box } from '@mui/material';
+import { AppBar, Toolbar, Button, Box } from '@mui/material';
 import { Link, useNavigate } from 'react-router-dom';
 import { AuthContext } from '@/contexts/AuthContext';
+// 1. Import your logo file. Adjust the path as needed.
+import logo from '@/assets/logo-blog.png';
 
 const Navbar: React.FC = () => {
   const auth = useContext(AuthContext);
-  console.log(auth);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const navigate = useNavigate();
 
-  if (!auth) {
-    // (in theory this should never happen, because you wrap in <AuthProvider> above)
-    return null;
-  }
+  if (!auth) return null; // AuthProvider ensures this never happens in practice
 
   const { user, logout } = auth;
-
   const handleLogout = () => {
     logout();
-    // (AuthProvider.logout already calls navigate('/login'), but if you
-    // want to force a redirect, you could also do: navigate('/') )
+    navigate('/login');
   };
 
   return (
     <AppBar position="static">
       <Toolbar>
-        <Typography
-          variant="h6"
+
+        {/* 2. Logo + title grouped in a Link */}
+        <Box
           component={Link}
           to="/"
           sx={{
-            flexGrow: 1,
-            textDecoration: 'none',
+            display: 'flex',
+            alignItems: 'center',
+            flexGrow: 1,            // pushes buttons to the right
+            textDecoration: 'none', 
             color: 'inherit',
           }}
         >
-          MyBlog
-        </Typography>
+          {/* 3. Logo image with custom size */}
+          <Box
+            component="img"
+            src={logo}
+            alt="MyBlog Logo"
+            sx={{
+              height: 80,           // change to your desired height
+              width: 100,            // change to your desired width
+              mr: 2,                // spacing between logo and text
+            }}
+          />
 
+          {/* 4. Title next to logo */}
+          {/* <Typography variant="h6" noWrap>
+            MyBlog
+          </Typography> */}
+        </Box>
+
+        {/* 5. Navigation buttons */}
         {user ? (
           <Box>
             <Button color="inherit" component={Link} to="/posts/new">
               New Post
+            </Button>
+            <Button color="inherit" component={Link} to="/category/new">
+              New Category
             </Button>
             <Button color="inherit" onClick={handleLogout}>
               Logout
@@ -58,6 +75,7 @@ const Navbar: React.FC = () => {
             </Button>
           </Box>
         )}
+
       </Toolbar>
     </AppBar>
   );

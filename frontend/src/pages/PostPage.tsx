@@ -1,3 +1,4 @@
+// src/pages/PostPage.tsx
 import React, { useEffect, useState, useContext } from 'react';
 import {
   Container,
@@ -7,7 +8,7 @@ import {
   CircularProgress,
 } from '@mui/material';
 import { useParams, Link, useNavigate } from 'react-router-dom';
-import {AuthContext} from '@/contexts/AuthContext';
+import { AuthContext } from '@/contexts/AuthContext';
 import postService from '@/services/postService';
 import commentService from '@/services/commentService';
 import { Post, Comment } from '@/types';
@@ -22,7 +23,9 @@ const PostPage: React.FC = () => {
 
   const [post, setPost] = useState<Post | null>(null);
   const [comments, setComments] = useState<Comment[]>([]);
-  const [editingComment, setEditingComment] = useState<null | { id: string; content: string }>(null);
+  const [editingComment, setEditingComment] = useState<
+    null | { id: string; content: string }
+  >(null);
   const [loading, setLoading] = useState(false);
 
   const fetchPost = async () => {
@@ -45,6 +48,7 @@ const PostPage: React.FC = () => {
       setComments(fetched);
     } catch (err) {
       console.error(err);
+      setComments([]);
     }
   };
 
@@ -64,13 +68,13 @@ const PostPage: React.FC = () => {
     }
   };
 
-  const canModifyPost = post ? post.author.id === auth.user?.id : false;
+  const canModifyPost = post?.author.id === auth.user?.id;
 
   const handleAddComment = async (content: string) => {
     if (!id) return;
     try {
       await commentService.createComment(id, content);
-      fetchComments();
+      await fetchComments();
     } catch (err) {
       console.error(err);
     }
@@ -85,7 +89,7 @@ const PostPage: React.FC = () => {
     try {
       await commentService.updateComment(editingComment.id, content);
       setEditingComment(null);
-      fetchComments();
+      await fetchComments();
     } catch (err) {
       console.error(err);
     }
@@ -94,13 +98,13 @@ const PostPage: React.FC = () => {
   const handleDeleteComment = async (commentId: string) => {
     try {
       await commentService.deleteComment(commentId);
-      fetchComments();
+      await fetchComments();
     } catch (err) {
       console.error(err);
     }
   };
 
-  const canModifyComment = (commentAuthorId: string) => commentAuthorId === auth.user?.id;
+  const canModifyComment = (authorId: string) => authorId === auth.user?.id;
 
   if (loading || !post) {
     return (
@@ -115,8 +119,13 @@ const PostPage: React.FC = () => {
       <Typography variant="h3" gutterBottom>
         {post.title}
       </Typography>
-      <Typography variant="subtitle1" color="text.secondary" gutterBottom>
-        By {post.author.username} • {new Date(post.createdAt).toLocaleDateString()}
+      <Typography
+        variant="subtitle1"
+        color="text.secondary"
+        gutterBottom
+      >
+        By {post.author.username} •{' '}
+        {new Date(post.createdAt).toLocaleDateString()}
       </Typography>
 
       <Box sx={{ marginY: 2 }}>
@@ -126,31 +135,43 @@ const PostPage: React.FC = () => {
             variant="outlined"
             component={Link}
             to={`/categories/${cat.slug}`}
-            sx={{ marginRight: 1, marginBottom: 1 }}
+            sx={{ mr: 1, mb: 1 }}
           >
             {cat.name}
           </Button>
         ))}
       </Box>
 
-      <Typography variant="body1" sx={{ whiteSpace: 'pre-wrap', marginBottom: 2 }}>
+      <Typography
+        variant="body1"
+        sx={{ whiteSpace: 'pre-wrap', mb: 2 }}
+      >
         {post.content}
       </Typography>
 
       <LikeButton postId={post.id} />
 
       {canModifyPost && (
-        <Box sx={{ marginY: 2 }}>
-          <Button variant="outlined" component={Link} to={`/posts/${post.id}/edit`} sx={{ marginRight: 1 }}>
+        <Box sx={{ my: 2 }}>
+          <Button
+            variant="outlined"
+            component={Link}
+            to={`/posts/${post.id}/edit`}
+            sx={{ mr: 1 }}
+          >
             Edit Post
           </Button>
-          <Button variant="contained" color="error" onClick={handleDeletePost}>
+          <Button
+            variant="contained"
+            color="error"
+            onClick={handleDeletePost}
+          >
             Delete Post
           </Button>
         </Box>
       )}
 
-      <Box sx={{ marginTop: 4 }}>
+      <Box sx={{ mt: 4 }}>
         <Typography variant="h5" gutterBottom>
           Comments
         </Typography>

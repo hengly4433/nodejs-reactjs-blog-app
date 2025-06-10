@@ -28,11 +28,31 @@ export interface Category {
   createdAt?: string;
   updatedAt?: string;
 }
+//
+// Raw shapes coming back from the server
+//
+export interface RawCategory {
+  _id: string;
+  name: string;
+  slug: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface RawCategoryListResponse {
+  success: boolean;
+  data: RawCategory[];
+}
+
+export interface RawCategoryResponse {
+  success: boolean;
+  data: RawCategory;
+}
 
 // ─── 3) Post types ──────────────────────────────────────────────────────────
 
 export interface Post {
-    id: string;
+  id: string;
   title: string;
   slug: string;
   content: string;            // HTML
@@ -52,6 +72,11 @@ export interface PaginatedPosts {
 }
 
 export interface PostResponse {
+  success: boolean;
+  data: Post;
+}
+
+export interface CategoryResponse {
   success: boolean;
   data: Post;
 }

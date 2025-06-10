@@ -1,49 +1,67 @@
 // src/config/multer.ts
-import multer from 'multer';
-import { Request } from 'express';
-import path from 'path';
-import { v4 as uuidv4 } from 'uuid';
-import fs from 'fs';
 
-// 1) Directory where uploaded post images will be stored.
-const UPLOAD_DIR = path.resolve(__dirname, '../uploads/posts');
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
+import { Request } from 'express';
+import { v4 as uuidv4 } from 'uuid';
+
+/**
+ * 1) We want Multer to write into `<projectRoot>/uploads/posts`
+ *    at runtime.  In Docker, `process.cwd()` === '/app', so:
+ *      path.resolve(process.cwd(), 'uploads', 'posts')
+ *    becomes '/app/uploads/posts'.
+ */
+const UPLOAD_DIR = path.resolve(process.cwd(), 'uploads', 'posts');
+
+// If that directory doesn’t exist yet, create it (including any parent folders).
 if (!fs.existsSync(UPLOAD_DIR)) {
   fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 }
 
-// 2) Configure storage: destination and filename
+/**
+ * 2) Configure Multer’s diskStorage so that every file goes to UPLOAD_DIR,
+ *    and gets a UUID + timestamp‐based name.
+ */
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => {
-    // cb expects (err: Error, destination: string). Pass `undefined as any` for “no error.”
-    cb(undefined as any, UPLOAD_DIR);
+    // First argument is `error` (null = no error), second is destination path.
+    cb(null, UPLOAD_DIR);
   },
   filename: (_req, file, cb) => {
+    // Keep the original extension (e.g. ".jpg" or ".png")
     const ext = path.extname(file.originalname);
+    // Build a unique name: <uuid>_<timestamp><ext>
     const uniqueName = `${uuidv4()}_${Date.now()}${ext}`;
-    // Again, first argument must be Error. Pass `undefined as any` for “no error.”
-    cb(undefined as any, uniqueName);
+    cb(null, uniqueName);
   },
 });
 
-// 3) File filter: only accept JPEG/PNG
+/**
+ * 3) Only accept JPEG or PNG.  If the mimetype is anything else, reject.
+ */
 const imageFileFilter: multer.Options['fileFilter'] = (
   _req: Request,
   file: Express.Multer.File,
-  cb  // This is Multer’s FileFilterCallback signature
+  cb  // Multer’s FileFilterCallback
 ) => {
   if (file.mimetype === 'image/jpeg' || file.mimetype === 'image/png') {
-    // No error, accept the file
-    cb(undefined as any, true);
+    cb(null, true);
   } else {
-    // Fatal error: reject upload due to invalid mimetype
-    cb(new Error('Invalid file type. Only JPEG and PNG image formats are allowed.'));
+    cb(new Error('Invalid file type. Only JPEG and PNG formats are allowed.'));
   }
 };
 
-// 4) Maximum file size (5 MB)
-const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+/**
+ * 4) Limit file size to 5 MB.  If a larger file is uploaded, Multer will throw a "LIMIT_FILE_SIZE" error.
+ */
+const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 MB
 
-// 5) Export the configured Multer instance
+/**
+ * 5) Export the configured Multer middleware.  Use
+ *      upload.single('image')
+ *    for any route that expects exactly one file under the field name "image".
+ */
 export const upload = multer({
   storage,
   fileFilter: imageFileFilter,

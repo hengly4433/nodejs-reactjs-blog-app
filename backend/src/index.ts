@@ -46,10 +46,10 @@ const app: Application = express();
 
 app.use('/api/', apiLimiter);
 
-// 2) Serve static files from the /uploads directory, so uploaded images are accessible
+// 1) Serve all files under `<projectRoot>/uploads` when the client requests `/uploads/*`
 app.use(
   '/uploads',
-  express.static(path.resolve(__dirname, 'uploads')),
+  express.static(path.resolve(process.cwd(), 'uploads'))
 );
 
 // 3) Serve Swagger UI at /api-docs

@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   backend:
     build:
@@ -11,8 +13,11 @@ services:
       - "4000:4000"
     depends_on:
       - mongo
+
+    # ← Mount a named volume at /app/uploads so Multer’s files are persisted
     volumes:
       - uploads_data:/app/uploads
+
     networks:
       - blog-network
 

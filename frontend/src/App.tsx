@@ -10,6 +10,7 @@ import EditPostPage from './pages/EditPostPage';
 import PostPage from './pages/PostPage';
 import NotFoundPage from './pages/NotFoundPage';
 import CategoryPage from './pages/CategoryPage';
+import NewCategoryPage from './pages/NewCategoryPage';
 
 
 const App: React.FC = () => {
@@ -27,6 +28,14 @@ const App: React.FC = () => {
           element={
             <ProtectedRoute>
               <NewPostPage />
+            </ProtectedRoute>
+          }
+        />
+         <Route
+          path="/category/new"
+          element={
+            <ProtectedRoute>
+              <NewCategoryPage />
             </ProtectedRoute>
           }
         />

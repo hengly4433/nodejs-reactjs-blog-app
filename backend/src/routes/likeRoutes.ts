@@ -18,4 +18,8 @@ router.delete('/posts/:postId/unlike', LikeController.unlikePost);
 // 3) Get like count (and optionally paginated list)
 router.get('/posts/:postId/likes', LikeController.getLikes);
 
+// 4): Check if current user liked this post
+router.get('/posts/:postId/liked', LikeController.hasUserLiked);
+
+
 export default router;
