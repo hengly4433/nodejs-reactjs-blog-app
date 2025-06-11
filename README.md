@@ -7,7 +7,7 @@
 ![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/your-org/blog-app/ci.yml)
 ![Last Commit](https://img.shields.io/github/last-commit/your-org/blog-app)
 
-> A modern full-stack blogging platform built with Node.js, React, TypeScript, and MongoDB — featuring authentication, post management, comments, likes, and category management.
+> A simple full-stack blogging platform built with Node.js, React, TypeScript, and MongoDB — featuring authentication, post management, comments, likes, and category management.
 
 ---
 
