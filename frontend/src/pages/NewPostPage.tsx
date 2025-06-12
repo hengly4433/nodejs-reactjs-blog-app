@@ -78,6 +78,7 @@ const NewPostPage: React.FC = () => {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [error, setError] = useState<string>('');
   const [categoryError, setCategoryError] = useState<string>('');
+  const [submitting, setSubmitting] = useState(false);
 
   // ── Auto-slugify on title change ────────────────────────────────────────────
   useEffect(() => {
@@ -157,6 +158,9 @@ const NewPostPage: React.FC = () => {
   // ── Form submission ───────────────────────────────────────────────────────
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitting) return;
+    setSubmitting(true);
+
     setError('');
     setCategoryError('');
 
@@ -168,7 +172,8 @@ const NewPostPage: React.FC = () => {
     const htmlContent = editor.getHTML().trim();
 
     // Basic validation:
-    if (!title.trim() || !slug.trim() || htmlContent === '<p></p>') {
+    const textOnly = editor.getText().trim();
+    if (!title.trim() || !slug.trim() || !textOnly) {
       setError('Title, Slug, and Content are required.');
       return;
     }
@@ -195,6 +200,7 @@ const NewPostPage: React.FC = () => {
     try {
       await postService.createPost(formData);
       navigate('/');
+      setSubmitting(false);
     } catch (err: any) {
       console.error(err);
       const msg = err.response?.data?.message || 'Error creating post.';
@@ -329,8 +335,8 @@ const NewPostPage: React.FC = () => {
         </Box>
 
         {/* Submit */}
-        <Button type="submit" variant="contained" color="primary" sx={{ mt: 3 }}>
-          Create Post
+        <Button type="submit" disabled={submitting} variant="contained" color="primary" sx={{ mt: 3 }}>
+          {submitting ? 'Creating…' : 'Create Post'}
         </Button>
       </Box>
     </Container>

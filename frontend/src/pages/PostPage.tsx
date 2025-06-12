@@ -15,6 +15,7 @@ import { Post, Comment } from '@/types';
 import CommentList from '@/components/CommentList';
 import CommentForm from '@/components/CommentForm';
 import LikeButton from '@/components/LikeButton';
+import DOMPurify from 'dompurify';
 
 const PostPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -114,6 +115,9 @@ const PostPage: React.FC = () => {
     );
   }
 
+   // Sanitize once per render
+  const cleanContent = DOMPurify.sanitize(post.content ?? '');
+
   return (
     <Container sx={{ marginTop: 4 }}>
       <Typography variant="h3" gutterBottom>
@@ -143,11 +147,11 @@ const PostPage: React.FC = () => {
       </Box>
 
       <Typography
+        component="div"
         variant="body1"
-        sx={{ whiteSpace: 'pre-wrap', mb: 2 }}
-      >
-        {post.content}
-      </Typography>
+        sx={{ mb: 2 }}
+        dangerouslySetInnerHTML={{ __html: cleanContent }}
+      />
 
       <LikeButton postId={post.id} />
 
