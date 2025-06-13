@@ -10,17 +10,26 @@
 > A simple full-stack blogging platform built with Node.js, React, TypeScript, and MongoDB — featuring authentication, post management, comments, likes, and category management.
 
 ---
+## 🚀 Features
 
-## ✨ Features
+### ✅ Backend Features
+- Modular MVC architecture with Service/DTO layers
+- JWT authentication (Login/Register)
+- Role-based authorization
+- RESTful API for Posts, Comments, Likes, Categories
+- Centralized Error handling (custom `ApiError`)
+- Request validation using Joi DTOs
+- File upload support (e.g., post images via `multer`)
+- Logging via Winston
+- Swagger API docs (`/api/docs`)
 
-- 🔐 JWT-based Authentication (Register, Login)
-- 🖊️ TipTap Rich-text Editor for Posts
-- 💬 Commenting System with Likes
-- 🗂️ Category Management with Validation
-- 🧱 Modular Backend Architecture (DTO, Services, Middleware)
-- 📦 Fully Dockerized (MongoDB + Node + React)
-- 📚 Auto-generated Swagger API Docs
-- ⚙️ Centralized Error Handling and Logging (Winston)
+### ✅ Frontend Features
+- Authentication system using React Context
+- Protected routes (with `ProtectedRoute.tsx`)
+- Post creation & editing using rich-text editor (TipTap)
+- Post listing with cards, likes, and comments
+- Responsive design with MUI components
+- API integration using Axios service layer
 
 ---
 
@@ -40,14 +49,13 @@
 
 ## 🛠️ Tech Stack
 
-| Layer      | Technology                          |
-|------------|--------------------------------------|
-| Frontend   | React, Vite, MUI, TipTap, Axios      |
-| Backend    | Node.js, Express.js, TypeScript      |
-| Database   | MongoDB                              |
-| Auth       | JWT, bcryptjs, Helmet, RateLimiter   |
-| DevOps     | Docker, Docker Compose               |
-| Docs       | Swagger (OpenAPI YAML)               |
+| Layer      | Stack                                           |
+|------------|--------------------------------------------------|
+| Backend    | Node.js, Express.js, TypeScript, MongoDB, Joi    |
+| Frontend   | React, Vite, TypeScript, MUI, TipTap, Axios      |
+| Security   | JWT, bcryptjs, helmet, rate-limiter              |
+| DevOps     | Docker, Docker Compose                           |
+| Tools      | Winston, Swagger, ESLint, Prettier               |
 
 ---
 
@@ -84,7 +92,8 @@
 
 ```bash
 # Clone the project
-git clone https://github.com/hengly4433/nodejs-reactjs-blog-app.git && cd nodejs-reactjs-blog-app
+git clone https://github.com/hengly4433/nodejs-reactjs-blog-app.git 
+cd nodejs-reactjs-blog-app
 
 # Build & start all containers
 docker-compose up --build
